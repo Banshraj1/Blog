@@ -24,9 +24,7 @@ export default function Post() {
   }, [slug, navigate]);
 
   const deletePost = () => {
-    console.log(post.$id);
-    
-    appwriteService.deletePost(post.$id).then((status) => {
+    appwriteService.deletePost(post.$id,post.featuredImage).then((status) => {
       if (status) {
         appwriteService.deleteFile(post.featuredImage);
         navigate("/");
@@ -35,33 +33,64 @@ export default function Post() {
   };
 
   return post ? (
-    <div className="py-8">
+    <div className="py-8 bg-gray-50 min-h-screen">
       <Container>
-        <div className="w-full flex justify-center mb-4 relative border rounded-xl p-2">
-          <img
-            src={appwriteService.getFilePreview(post.featuredImage)}
-            alt={post.title}
-            className="rounded-xl"
-          />
+        <div className="max-w-6xl mx-auto">
+          {/* Header Card */}
+          <div className="bg-white rounded-3xl shadow-lg p-6 md:p-8">
+            <div className="flex flex-col md:flex-row gap-50">
+              
+              {/* Image */}
+              <div className="flex-shrink-0 flex justify-center">
+                <img
+                  src={appwriteService.getFileUrl(post.featuredImage)}
+                  alt={post.title}
+                  className="w-40 h-40 md:w-56 md:h-56 rounded-full object-cover "
+                />
+              </div>
 
-          {isAuthor && (
-            <div className="absolute right-6 top-6">
-              <Link to={`/edit-post/${post.$id}`}>
-                <Button bgColor="bg-green-500" className="mr-3">
-                  Edit
-                </Button>
-              </Link>
+              {/* Title + Author */}
+              <div className="flex-1 flex flex-col justify-center">
+                <h1 className="text-3xl md:text-5xl font-bold text-slate-800 text-center md:text-left">
+                  {post.title}
+                </h1>
 
-              <Button bgColor="bg-red-500" onClick={deletePost}>
-                Delete
-              </Button>
+                <p className="mt-8 text-base md:text-lg text-gray-500 text-center md:text-right">
+                  By {post.authorName || "author"}
+                </p>
+              </div>
             </div>
-          )}
+          </div>
+
+          {/* Content Card */}
+          <div className="bg-white mt-8 rounded-3xl shadow-lg p-6 md:p-10">
+            <div className="prose prose-lg max-w-none">
+              {parse(post.content)}
+            </div>
+
+            {/* Buttons */}
+            {isAuthor && (
+              <div className="flex justify-end gap-4 mt-10 flex-wrap">
+                <Link to={`/edit-post/${post.$id}`}>
+                  <Button
+                    bgColor="bg-green-600"
+                    className="px-6 py-3 rounded-full hover:bg-green-700 transition-all"
+                  >
+                    Edit
+                  </Button>
+                </Link>
+
+                <Button
+                  bgColor="bg-red-600"
+                  onClick={deletePost}
+                  className="px-6 py-3 rounded-full hover:bg-red-700 transition-all"
+                >
+                  Delete
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="w-full mb-6">
-          <h1 className="text-2xl font-bold">{post.title}</h1>
-        </div>
-        <div className="browser-css">{parse(post.content)}</div>
       </Container>
     </div>
   ) : null;

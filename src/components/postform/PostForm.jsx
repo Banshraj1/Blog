@@ -6,18 +6,19 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 export default function PostForm({ post }) {
+  const userData = useSelector((state) => state.auth.userData);
   const { register, handleSubmit, watch, setValue, control, getValues } =
     useForm({
       defaultValues: {
         title: post?.title || "",
         slug: post?.$id || "",
         content: post?.content || "",
-        status: post?.status || "active",
+        status: post?.status || "public",
+        authorName: userData?.name || "author",
       },
     });
 
   const navigate = useNavigate();
-  const userData = useSelector((state) => state.auth.userData);
 
   const submit = async (data) => {
     console.log(data);
@@ -39,11 +40,39 @@ export default function PostForm({ post }) {
         navigate(`/post/${dbPost.$id}`);
       }
     } else {
-      const file = await appwriteService.uploadFile(data.image[0]);
+      let file = data.image[0]
+        ? await appwriteService.uploadFile(data.image[0])
+        : null;
+      if (!file) {
+        console.log("file not found sample image updated");
+        file = {
+          $id: "6a339e1e001cb31d7b8a",
+          bucketId: "69a95f820015ca848e8f",
+          $createdAt: "2026-06-18T07:28:30.210+00:00",
+          $updatedAt: "2026-06-18T07:28:30.210+00:00",
+          $permissions: [
+            'read("user:6a2e2912001eeb44641b")',
+            'update("user:6a2e2912001eeb44641b")',
+            'delete("user:6a2e2912001eeb44641b")',
+          ],
+          name: "no_image.jpeg",
+          signature: "d2346b938991a867a8b20fa887d2a2ec",
+          mimeType: "image/jpeg",
+          sizeOriginal: 7425,
+          sizeActual: 9900,
+          chunksTotal: 1,
+          chunksUploaded: 1,
+          encryption: true,
+          compression: "none",
+        };
+      }
 
       if (file) {
+        console.log(file);
         const fileId = file.$id;
         data.featuredImage = fileId;
+        console.log(userData);
+
         const dbPost = await appwriteService.createPost({
           ...data,
           userId: userData.$id,
@@ -66,7 +95,7 @@ export default function PostForm({ post }) {
 
     return "";
   }, []);
- 
+
   React.useEffect(() => {
     const subscription = watch((value, { name }) => {
       if (name === "title") {
@@ -76,8 +105,7 @@ export default function PostForm({ post }) {
 
     return () => subscription.unsubscribe();
   }, [watch, slugTransform, setValue]);
-  console.log("featured image ==",post?.featuredImage);
-  
+  console.log("featured image ==", post?.featuredImage);
 
   return (
     <form onSubmit={handleSubmit(submit)} className="flex flex-wrap">
@@ -112,7 +140,7 @@ export default function PostForm({ post }) {
           type="file"
           className="mb-4"
           accept="image/png, image/jpg, image/jpeg, image/gif"
-          {...register("image", { required: true })}
+          {...register("image", { required: false })}
         />
         {post && (
           <div className="w-full mb-4">
@@ -124,7 +152,7 @@ export default function PostForm({ post }) {
           </div>
         )}
         <Select
-          options={["active", "inactive"]}
+          options={["public", "private"]}
           label="Status"
           className="mb-4"
           {...register("status", { required: true })}
@@ -133,7 +161,7 @@ export default function PostForm({ post }) {
           type="submit"
           bgColor={post ? "bg-green-500" : "bg-red-500"}
           className="w-full hover:bg-gray-700/80"
-              // bgColor="bg-gray-700/60"
+          // bgColor="bg-gray-700/60"
         >
           {post ? "Update" : "Submit"}
         </Button>

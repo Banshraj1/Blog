@@ -1,5 +1,5 @@
 import { data } from "react-router-dom";
-import conf from "./conf.js";
+import conf, { sampleData } from "./conf.js";
 
 import {
   Client,
@@ -21,19 +21,28 @@ export class Service {
     this.bucket = new Storage(this.client);
   }
 
-  async createPost({ title, slug, content, featuredImage, status, userId }) {
+  async createPost({
+    title,
+    slug,
+    content,
+    featuredImage,
+    status,
+    userId,
+    authorName,
+  }) {
     {
       try {
         const response = await this.databases.createDocument(
           conf.appwriteDatabaseId,
           conf.appwriteCollectionId,
-          slug,
+          slug+Date.now(),
           {
             title,
             content,
             featuredImage,
-            status: status==="active"?true:false,
+            status: status === "public" ? true : false,
             userId,
+            authorName,
           },
         );
         console.log(response);
@@ -45,7 +54,10 @@ export class Service {
     }
   }
 
-  async updatePost(slug, { title, content, featuredImage, status }) {
+  async updatePost(
+    slug,
+    { title, content, featuredImage, status, authorName },
+  ) {
     try {
       return await this.databases.updateDocument(
         conf.appwriteDatabaseId,
@@ -55,20 +67,17 @@ export class Service {
           title,
           content,
           featuredImage,
-          status,
+          status: status === "public" || status === true ? true : false,
+          authorName,
         },
-        [
-          Permission.read(Role.any()),
-          Permission.update(Role.user(userId)),
-          Permission.delete(Role.user(userId)),
-        ],
       );
     } catch (error) {
       console.log(error);
     }
   }
-  async deletePost(slug) {
+  async deletePost(slug, fileId) {
     try {
+      await this.deleteFile(fileId);
       await this.databases.deleteDocument({
         databaseId: conf.appwriteDatabaseId,
         collectionId: conf.appwriteCollectionId,
@@ -129,6 +138,9 @@ export class Service {
 
   async deleteFile(fileId) {
     try {
+      if (fileId == sampleData.$id) return "";
+      console.log("file deleted");
+
       return await this.bucket.deleteFile(conf.appwriteBucketId, fileId);
     } catch (error) {
       console.log("Appwrite service :: error :: deleteFile :: ", error);
@@ -139,6 +151,16 @@ export class Service {
   getFilePreview(fileId) {
     try {
       return this.bucket.getFilePreview(conf.appwriteBucketId, fileId);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  getFileUrl(fileId) {
+    try {
+      const url = `${conf.appwriteUrl}/storage/buckets/${conf.appwriteBucketId}/files/${fileId}/view?project=${conf.appwriteId}`;
+      // console.log(url);
+      return url;
     } catch (error) {
       console.log(error);
     }
